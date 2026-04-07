@@ -15,12 +15,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
+  padding: 20px 12px;
   font-family: 'Lora', Georgia, serif;
 }
 
 .magazine {
-  width: 900px;
+  width: min(900px, 100%);
   background: #F2EDE3;
   box-shadow: 0 4px 6px rgba(0,0,0,0.08), 0 24px 80px rgba(0,0,0,0.28);
   position: relative;
@@ -158,7 +158,63 @@ canvas#text-canvas {
 }
 .mag-footer .hl { color: #B8572A; font-weight: 700; }
 
-/* IRON MAN */
+/* ── MOBILE ───────────────────────────────────────────── */
+@media (max-width: 600px) {
+  body { padding: 0; align-items: flex-start; }
+
+  .magazine { width: 100%; box-shadow: none; min-height: 100dvh; }
+
+  .mag-header { padding: 14px 16px 0; }
+
+  .issue-meta {
+    flex-direction: column;
+    gap: 2px;
+    font-size: 7.5px;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+  }
+  .issue-meta span:nth-child(2) { display: none; } /* hide middle item on tiny screens */
+
+  .mag-name {
+    font-size: 13vw;
+    line-height: 0.9;
+  }
+  .mag-name .line2 { padding-left: 8vw; }
+
+  .mag-role {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    margin-top: 8px;
+  }
+  .mag-role-dots { display: none; }
+  .mag-role-text { font-size: 8px; letter-spacing: 0.18em; }
+
+  .stats-row { margin: 0 -16px; margin-top: 10px; }
+  .stat-val  { font-size: 13px; }
+  .stat-lbl  { font-size: 7px; }
+
+  .layout-area { height: 68vh; }
+
+  .hint-label {
+    font-size: 7px;
+    letter-spacing: 0.1em;
+    white-space: normal;
+    text-align: center;
+    width: 90%;
+    line-height: 1.5;
+  }
+
+  .badge { font-size: 9.5px; padding: 5px 10px 6px; }
+
+  .mag-footer {
+    padding: 10px 16px;
+    flex-direction: column;
+    gap: 4px;
+    text-align: center;
+    font-size: 7.5px;
+  }
+}
 #ironman-wrap {
   position: fixed;
   z-index: 9999;
@@ -307,16 +363,16 @@ On the web I bring the same thinking to full-stack architecture. REST APIs, WebS
 
 I do not think in frameworks. I think in systems. In an industry that keeps pushing you to specialise, I have bet everything on understanding the whole stack, one layer at a time.`;
 
-// ── BADGES ─────────────────────────────────────────────────────────
+// ── BADGE DEFS  (positions as 0-1 fractions of canvas size, set after mount) ──
 const BADGE_DEFS = [
-  { label: 'React',         bg: '#20232A', fg: '#61DAFB', x: 610, y: 32,  rot: -2.1 },
-  { label: 'TypeScript',    bg: '#3178C6', fg: '#FFFFFF', x: 520, y: 112, rot:  1.4 },
-  { label: 'Android',       bg: '#1B6B3A', fg: '#3DDC84', x: 648, y: 178, rot: -1.8 },
-  { label: 'React Native',  bg: '#282C34', fg: '#61DAFB', x: 378, y: 265, rot:  2.2 },
-  { label: 'Node.js',       bg: '#1A4D1A', fg: '#68C44A', x: 600, y: 305, rot: -1.2 },
-  { label: 'JavaScript',    bg: '#1A1714', fg: '#F7DF1E', x: 152, y: 355, rot:  1.8 },
-  { label: 'Kotlin',        bg: '#7F52FF', fg: '#FFFFFF', x: 638, y: 395, rot: -2.5 },
-  { label: 'Next.js + AWS', bg: '#B8572A', fg: '#FFFFFF', x: 316, y: 155, rot:  1.0 },
+  { label: 'React',         bg: '#20232A', fg: '#61DAFB', fx: 0.68, fy: 0.06, rot: -2.1 },
+  { label: 'TypeScript',    bg: '#3178C6', fg: '#FFFFFF', fx: 0.58, fy: 0.22, rot:  1.4 },
+  { label: 'Android',       bg: '#1B6B3A', fg: '#3DDC84', fx: 0.72, fy: 0.35, rot: -1.8 },
+  { label: 'React Native',  bg: '#282C34', fg: '#61DAFB', fx: 0.42, fy: 0.52, rot:  2.2 },
+  { label: 'Node.js',       bg: '#1A4D1A', fg: '#68C44A', fx: 0.67, fy: 0.60, rot: -1.2 },
+  { label: 'JavaScript',    bg: '#1A1714', fg: '#F7DF1E', fx: 0.17, fy: 0.70, rot:  1.8 },
+  { label: 'Kotlin',        bg: '#7F52FF', fg: '#FFFFFF', fx: 0.71, fy: 0.78, rot: -2.5 },
+  { label: 'Next.js + AWS', bg: '#B8572A', fg: '#FFFFFF', fx: 0.35, fy: 0.30, rot:  1.0 },
 ];
 
 // ── CANVAS ─────────────────────────────────────────────────────────
@@ -324,8 +380,6 @@ const area   = document.getElementById('layoutArea');
 const canvas = document.getElementById('text-canvas');
 const ctx    = canvas.getContext('2d');
 
-// Cached area rect so Iron Man knows where the canvas lives in the viewport.
-// Updated on resize/scroll only — zero DOM reads per animation frame.
 let areaRect = { left: 0, top: 0, width: 900, height: 510 };
 function updateAreaRect() { areaRect = area.getBoundingClientRect(); }
 
@@ -333,18 +387,32 @@ function resizeCanvas() {
   canvas.width  = area.clientWidth;
   canvas.height = area.clientHeight;
   updateAreaRect();
+  // Reposition badges to match new canvas size
+  badges.forEach(b => {
+    if (!b.el) return;
+    b.x = Math.round(b.fx * canvas.width);
+    b.y = Math.round(b.fy * canvas.height);
+    b.el.style.left = b.x + 'px';
+    b.el.style.top  = b.y + 'px';
+  });
 }
-resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 window.addEventListener('scroll', updateAreaRect, { passive: true });
 setTimeout(updateAreaRect, 120);
 
 // ── BADGE MOUNT + DRAG ─────────────────────────────────────────────
-const badges = BADGE_DEFS.map(d => ({ ...d, w: 0, h: 0, el: null }));
+const badges = BADGE_DEFS.map(d => ({
+  ...d,
+  x: 0, y: 0, // set after canvas is sized
+  w: 0, h: 0,
+  el: null
+}));
 let dragIdx = null, dragDX = 0, dragDY = 0;
 
 function mountBadges() {
   badges.forEach((b, i) => {
+    b.x = Math.round(b.fx * canvas.width);
+    b.y = Math.round(b.fy * canvas.height);
     const el = document.createElement('div');
     el.className = 'badge';
     el.textContent = b.label;
@@ -374,6 +442,9 @@ function moveDrag(cx, cy) {
   const b = badges[dragIdx], ar = area.getBoundingClientRect();
   b.x = Math.max(0, Math.min(canvas.width  - (b.w || 90), cx - ar.left - dragDX));
   b.y = Math.max(0, Math.min(canvas.height - (b.h || 34), cy - ar.top  - dragDY));
+  // Keep fractional positions updated so resize keeps them in place
+  b.fx = b.x / canvas.width;
+  b.fy = b.y / canvas.height;
   b.el.style.left = b.x + 'px';
   b.el.style.top  = b.y + 'px';
 }
@@ -387,18 +458,30 @@ document.addEventListener('touchmove', e => { e.preventDefault(); moveDrag(e.tou
 document.addEventListener('touchend', endDrag);
 
 // ── TEXT LAYOUT ENGINE ─────────────────────────────────────────────
-const PAD  = { top: 28, right: 44, bottom: 16, left: 44 };
-const FS   = 13.5;
-const LH   = 23;
+const PAD  = {
+  get top()    { return 28; },
+  get bottom() { return 16; },
+  get left()   { return window.innerWidth <= 600 ? 16 : 44; },
+  get right()  { return window.innerWidth <= 600 ? 16 : 44; },
+};
 const BPAD = 13;
 const DC_LINES = 3;
-const DC_SIZE  = Math.round(FS * (LH / FS) * DC_LINES * 0.86);
-const BODY_FONT = `${FS}px 'Lora', Georgia, serif`;
+
+// Responsive font size and line height
+function getFontMetrics() {
+  const isMobile = window.innerWidth <= 600;
+  const fs = isMobile ? 11.5 : 13.5;
+  const lh = isMobile ? 19   : 23;
+  return { fs, lh };
+}
+
 const paragraphs = ARTICLE_BODY.split('\n\n').map(p => p.trim().split(/\s+/));
 let _dcWidth = 0;
 
 function measureDropCap() {
-  ctx.font = `900 ${DC_SIZE}px 'Playfair Display', Georgia, serif`;
+  const { fs, lh } = getFontMetrics();
+  const dcSize = Math.round(fs * (lh / fs) * DC_LINES * 0.86);
+  ctx.font = `900 ${dcSize}px 'Playfair Display', Georgia, serif`;
   _dcWidth = ctx.measureText(DROP_CAP_CHAR).width + 10;
 }
 
@@ -414,77 +497,75 @@ function availableSegments(y1, y2, exclusions, left, right) {
     }
     segs = next.length ? next : segs;
   }
-  return segs.filter(s => s.end - s.x > 26);
+  return segs.filter(s => s.end - s.x > 22);
 }
 
 function getExclusions() {
   const ex = [];
-  // Skill badges
   for (const b of badges) {
     if (!b.w) continue;
     ex.push({ x1: b.x - BPAD, y1: b.y - BPAD, x2: b.x + b.w + BPAD, y2: b.y + b.h + BPAD });
   }
-  // Drop cap
-  ex.push({ x1: PAD.left, y1: PAD.top, x2: PAD.left + _dcWidth, y2: PAD.top + DC_LINES * LH });
-  // Iron Man — convert from fixed viewport coords to canvas-local coords
+  ex.push({ x1: PAD.left, y1: PAD.top, x2: PAD.left + _dcWidth, y2: PAD.top + DC_LINES * getFontMetrics().lh });
+  // Iron Man in canvas-local coords
   const imCX = imX - areaRect.left;
   const imCY = imY - areaRect.top;
   const IM_PAD = 10;
-  ex.push({
-    x1: imCX - IM_PAD,
-    y1: imCY - IM_PAD,
-    x2: imCX + IM_W + IM_PAD,
-    y2: imCY + IM_H + IM_PAD,
-  });
+  ex.push({ x1: imCX - IM_PAD, y1: imCY - IM_PAD, x2: imCX + IM_W + IM_PAD, y2: imCY + IM_H + IM_PAD });
   return ex;
 }
 
 function layoutAllText(exclusions) {
-  ctx.font = BODY_FONT;
+  const { fs, lh } = getFontMetrics();
+  const bodyFont = `${fs}px 'Lora', Georgia, serif`;
+  ctx.font = bodyFont;
   const spW   = ctx.measureText(' ').width;
   const lines = [];
-  let y = PAD.top + LH;
+  let y = PAD.top + lh;
 
   for (let pi = 0; pi < paragraphs.length; pi++) {
     const words = [...paragraphs[pi]];
     let wi = 0;
     while (wi < words.length) {
       if (y > canvas.height - PAD.bottom) break;
-      const segs = availableSegments(y - FS, y + 5, exclusions, PAD.left, canvas.width - PAD.right);
-      ctx.font = BODY_FONT;
+      const segs = availableSegments(y - fs, y + 5, exclusions, PAD.left, canvas.width - PAD.right);
+      ctx.font = bodyFont;
       for (const seg of segs) {
         if (wi >= words.length) break;
         const segW = seg.end - seg.x;
-        let line = '', lw = 0;
+        let line = '', lw2 = 0;
         while (wi < words.length) {
           const w = words[wi], ww = ctx.measureText(w).width;
-          const needed = line ? lw + spW + ww : ww;
+          const needed = line ? lw2 + spW + ww : ww;
           if (needed > segW && line) break;
           line = line ? line + ' ' + w : w;
-          lw = needed;
+          lw2 = needed;
           wi++;
         }
-        if (line) lines.push({ text: line, x: seg.x, y, maxW: segW, lw, isLast: wi >= words.length });
+        if (line) lines.push({ text: line, x: seg.x, y, maxW: segW, lw: lw2, isLast: wi >= words.length, fs, lh, bodyFont });
       }
-      y += LH;
+      y += lh;
     }
-    y += LH * 0.45;
+    y += lh * 0.45;
   }
   return lines;
 }
 
 // ── DRAW ───────────────────────────────────────────────────────────
 function drawDropCap() {
-  ctx.font = `900 ${DC_SIZE}px 'Playfair Display', Georgia, serif`;
+  const { fs, lh } = getFontMetrics();
+  const dcSize = Math.round(fs * (lh / fs) * DC_LINES * 0.86);
+  ctx.font = `900 ${dcSize}px 'Playfair Display', Georgia, serif`;
   ctx.fillStyle = '#B8572A';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText(DROP_CAP_CHAR, PAD.left, PAD.top + DC_SIZE * 0.82);
+  ctx.fillText(DROP_CAP_CHAR, PAD.left, PAD.top + dcSize * 0.82);
 }
 
 function drawRulingLines() {
+  const { lh } = getFontMetrics();
   ctx.strokeStyle = 'rgba(180,170,158,0.1)';
   ctx.lineWidth = 0.5;
-  for (let y = PAD.top + LH * 5; y < canvas.height - PAD.bottom; y += LH * 5) {
+  for (let y = PAD.top + lh * 5; y < canvas.height - PAD.bottom; y += lh * 5) {
     ctx.beginPath();
     ctx.moveTo(PAD.left, y + 4);
     ctx.lineTo(canvas.width - PAD.right, y + 4);
@@ -493,7 +574,7 @@ function drawRulingLines() {
 }
 
 function drawLine(line) {
-  ctx.font = BODY_FONT;
+  ctx.font = line.bodyFont;
   ctx.fillStyle = '#1A1714';
   ctx.textBaseline = 'alphabetic';
   if (!line.isLast) {
@@ -542,8 +623,14 @@ let imPaused = false;
 let imPauseTimer = 0;
 
 function pickTarget() {
-  imTX = 20 + Math.random() * (window.innerWidth  - IM_W - 40);
-  imTY = 20 + Math.random() * (window.innerHeight - IM_H - 40);
+  // On mobile wander within the magazine canvas area; on desktop use full viewport
+  if (window.innerWidth <= 600) {
+    imTX = areaRect.left + 10 + Math.random() * (areaRect.width  - IM_W - 20);
+    imTY = areaRect.top  + 10 + Math.random() * (areaRect.height - IM_H - 20);
+  } else {
+    imTX = 20 + Math.random() * (window.innerWidth  - IM_W - 40);
+    imTY = 20 + Math.random() * (window.innerHeight - IM_H - 40);
+  }
   imSpeed = 0.65 + Math.random() * 0.9;
 }
 
@@ -576,6 +663,8 @@ function tickIronMan() {
 function imLoop() { tickIronMan(); requestAnimationFrame(imLoop); }
 
 // ── BOOT ───────────────────────────────────────────────────────────
+resizeCanvas(); // set canvas size before badges mount
+
 document.fonts.ready.then(() => {
   measureDropCap();
   mountBadges();
