@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aaftab Vhora — Developer Profile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Lora:ital,wght@0,400;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #CBC6BC;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  font-family: 'Lora', Georgia, serif;
+}
+
+.magazine {
+  width: 900px;
+  background: #F2EDE3;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.08), 0 24px 80px rgba(0,0,0,0.28);
+  position: relative;
+  overflow: hidden;
+}
+
+/* HEADER */
+.mag-header {
+  padding: 22px 44px 0;
+  border-bottom: 2.5px solid #1A1714;
+}
+
+.issue-meta {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: #8A8480;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.mag-name {
+  font-family: 'Playfair Display', serif;
+  font-weight: 900;
+  font-size: 76px;
+  line-height: 0.88;
+  letter-spacing: -0.02em;
+  color: #1A1714;
+  text-transform: uppercase;
+  user-select: none;
+}
+.mag-name .line2 { display: block; padding-left: 60px; }
+.mag-name .accent { color: #B8572A; }
+
+.mag-role {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+}
+.mag-role-text {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  color: #B8572A;
+  text-transform: uppercase;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.mag-role-dots { flex: 1; height: 1px; background: #C8C3BB; }
+
+/* STATS */
+.stats-row {
+  display: flex;
+  margin: 0 -44px;
+  border-top: 1px solid #C8C3BB;
+  margin-top: 12px;
+}
+.stat {
+  flex: 1;
+  padding: 8px 0 7px;
+  text-align: center;
+  border-right: 1px solid #C8C3BB;
+  font-family: 'Space Mono', monospace;
+}
+.stat:last-child { border-right: none; }
+.stat-val { display: block; font-size: 16px; font-weight: 700; color: #1A1714; line-height: 1; }
+.stat-val.green { color: #2A7A3B; }
+.stat-lbl { display: block; font-size: 8px; letter-spacing: 0.13em; color: #9A9590; text-transform: uppercase; margin-top: 3px; }
+
+/* LAYOUT AREA */
+.layout-area {
+  position: relative;
+  height: 510px;
+  overflow: hidden;
+  cursor: default;
+}
+canvas#text-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.hint-label {
+  position: absolute;
+  top: 9px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Space Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.16em;
+  color: #A8A3A0;
+  text-transform: uppercase;
+  pointer-events: none;
+  z-index: 30;
+  white-space: nowrap;
+}
+
+/* BADGES */
+.badge {
+  position: absolute;
+  border-radius: 5px;
+  padding: 7px 13px 8px;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: grab;
+  user-select: none;
+  letter-spacing: 0.04em;
+  z-index: 20;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.2), 0 4px 14px rgba(0,0,0,0.14);
+  transition: box-shadow 0.15s, transform 0.12s;
+}
+.badge:hover { box-shadow: 0 3px 0 rgba(0,0,0,0.22), 0 8px 24px rgba(0,0,0,0.2); }
+.badge.is-dragging {
+  cursor: grabbing;
+  box-shadow: 0 5px 0 rgba(0,0,0,0.22), 0 18px 40px rgba(0,0,0,0.28);
+}
+
+/* FOOTER */
+.mag-footer {
+  padding: 10px 44px;
+  border-top: 1px solid #C8C3BB;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.12em;
+  color: #9A9590;
+  text-transform: uppercase;
+}
+.mag-footer .hl { color: #B8572A; font-weight: 700; }
+
+/* IRON MAN */
+#ironman-wrap {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  width: 48px;
+  height: 66px;
+  will-change: left, top;
+}
+#ironman-wrap svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.4));
+}
+@keyframes im-bob {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-3px); }
+}
+@keyframes im-reactor {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+@keyframes im-eye {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+#ironman-wrap.walking { animation: im-bob 0.38s ease-in-out infinite; }
+.im-reactor { animation: im-reactor 1.6s ease-in-out infinite; }
+.im-eye-l   { animation: im-eye 2s ease-in-out infinite; }
+.im-eye-r   { animation: im-eye 2s ease-in-out infinite 0.4s; }
+
+#im-shadow {
+  position: fixed;
+  z-index: 9998;
+  pointer-events: none;
+  width: 32px;
+  height: 9px;
+  background: radial-gradient(ellipse, rgba(0,0,0,0.22) 0%, transparent 70%);
+  margin-left: -16px;
+}
+</style>
+</head>
+<body>
+
+<div class="magazine">
+  <div class="mag-header">
+    <div class="issue-meta">
+      <span>Developer Quarterly · Issue 01 · 2026</span>
+      <span>Full Stack · Mobile · Web · Toronto ON</span>
+      <span>aaftab.tech</span>
+    </div>
+    <div class="mag-name">
+      AAFTAB
+      <span class="line2">VHO<span class="accent">R</span>A</span>
+    </div>
+    <div class="mag-role">
+      <span class="mag-role-text">Full Stack Developer</span>
+      <div class="mag-role-dots"></div>
+      <span class="mag-role-text">Android · React Native · Web</span>
+    </div>
+    <div class="stats-row">
+      <div class="stat"><span class="stat-val" id="s-lines">0</span><span class="stat-lbl">Lines</span></div>
+      <div class="stat"><span class="stat-val" id="s-reflow">0ms</span><span class="stat-lbl">Reflow</span></div>
+      <div class="stat"><span class="stat-val green" id="s-dom">0</span><span class="stat-lbl">DOM Reads</span></div>
+      <div class="stat"><span class="stat-val" id="s-fps">60</span><span class="stat-lbl">FPS</span></div>
+      <div class="stat"><span class="stat-val" id="s-badges">8</span><span class="stat-lbl">Badges</span></div>
+    </div>
+  </div>
+
+  <div class="layout-area" id="layoutArea">
+    <canvas id="text-canvas"></canvas>
+    <div class="hint-label">Drag the badges · Iron Man parts the text · Zero DOM reads</div>
+  </div>
+
+  <div class="mag-footer">
+    <span>Powered by Pretext · chenglou/pretext</span>
+    <span class="hl">Zero DOM reads for text layout</span>
+    <span>github.com/aaftab22</span>
+  </div>
+</div>
+
+<!-- IRON MAN -->
+<div id="im-shadow"></div>
+<div id="ironman-wrap">
+  <svg viewBox="0 0 48 66" xmlns="http://www.w3.org/2000/svg">
+    <!-- Legs -->
+    <rect x="9"  y="44" width="11" height="16" rx="4" fill="#C0152A"/>
+    <rect x="28" y="44" width="11" height="16" rx="4" fill="#C0152A"/>
+    <!-- Boots -->
+    <rect x="8"  y="53" width="13" height="7" rx="3" fill="#D4930A"/>
+    <rect x="27" y="53" width="13" height="7" rx="3" fill="#D4930A"/>
+    <!-- Torso -->
+    <rect x="9"  y="22" width="30" height="24" rx="5" fill="#C0152A"/>
+    <!-- Chest gold -->
+    <rect x="11" y="24" width="26" height="9"  rx="3" fill="#D4930A"/>
+    <!-- Arc reactor -->
+    <circle cx="24" cy="37" r="5" fill="#0D47A1" opacity="0.35"/>
+    <circle cx="24" cy="37" r="3.5" fill="#29B6F6" class="im-reactor"/>
+    <circle cx="24" cy="37" r="1.6" fill="#B3E5FC"/>
+    <circle cx="24" cy="37" r="0.7" fill="#fff"/>
+    <!-- Arms -->
+    <rect x="0"  y="22" width="10" height="20" rx="5" fill="#C0152A"/>
+    <rect x="38" y="22" width="10" height="20" rx="5" fill="#C0152A"/>
+    <!-- Gauntlets -->
+    <rect x="0"  y="37" width="10" height="6" rx="3" fill="#D4930A"/>
+    <rect x="38" y="37" width="10" height="6" rx="3" fill="#D4930A"/>
+    <!-- Repulsors -->
+    <circle cx="5"  cy="40" r="2.2" fill="#29B6F6" opacity="0.9"/>
+    <circle cx="43" cy="40" r="2.2" fill="#29B6F6" opacity="0.9"/>
+    <circle cx="5"  cy="40" r="1"   fill="#E3F2FD"/>
+    <circle cx="43" cy="40" r="1"   fill="#E3F2FD"/>
+    <!-- Neck -->
+    <rect x="18" y="17" width="12" height="7" fill="#C0152A"/>
+    <!-- Helmet -->
+    <rect x="9"  y="2"  width="30" height="19" rx="7" fill="#C0152A"/>
+    <!-- Side gold -->
+    <rect x="9"  y="7"  width="5"  height="10" rx="2" fill="#D4930A"/>
+    <rect x="34" y="7"  width="5"  height="10" rx="2" fill="#D4930A"/>
+    <!-- Chin gold -->
+    <rect x="13" y="14" width="22" height="8"  rx="3" fill="#D4930A"/>
+    <!-- Helmet ridge -->
+    <rect x="21" y="2"  width="6"  height="14" rx="2" fill="#A0100A" opacity="0.25"/>
+    <!-- Eyes glow bg -->
+    <rect x="12" y="5" width="9" height="6" rx="2.5" fill="#1565C0" opacity="0.6"/>
+    <rect x="27" y="5" width="9" height="6" rx="2.5" fill="#1565C0" opacity="0.6"/>
+    <!-- Eyes -->
+    <rect x="12" y="5" width="9" height="6" rx="2.5" fill="#29B6F6" class="im-eye-l"/>
+    <rect x="27" y="5" width="9" height="6" rx="2.5" fill="#29B6F6" class="im-eye-r"/>
+    <!-- Eye shine -->
+    <rect x="13" y="6" width="4.5" height="2.5" rx="1" fill="#E3F2FD" opacity="0.85"/>
+    <rect x="28" y="6" width="4.5" height="2.5" rx="1" fill="#E3F2FD" opacity="0.85"/>
+  </svg>
+</div>
+
+<script>
+// ── CONTENT ────────────────────────────────────────────────────────
+const DROP_CAP_CHAR = 'T';
+
+const ARTICLE_BODY =
+`here is something I figured out early: picking one lane in software is a choice I was never willing to make. I build across Android, React Native and the web because each platform teaches you things the others cannot.
+
+Based in Toronto with three years of shipping real products, my stack runs from PostgreSQL and Node.js at the base, to React and Next.js on the web, and React Native, Kotlin and Java on mobile. That range is not an accident.
+
+My Android roots go deep. Sensors, hardware constraints, things no framework abstracts cleanly. That discipline lives in everything I build now, from a Kotlin task manager on the Play Store to a full e-commerce platform with Stripe and Prisma running in production.
+
+On the web I bring the same thinking to full-stack architecture. REST APIs, WebSockets, role-based auth, Firebase and AWS EC2. I have shipped production work at Caliber Group in Toronto and continue taking contracts on Upwork across both web and mobile.
+
+I do not think in frameworks. I think in systems. In an industry that keeps pushing you to specialise, I have bet everything on understanding the whole stack, one layer at a time.`;
+
+// ── BADGES ─────────────────────────────────────────────────────────
+const BADGE_DEFS = [
+  { label: 'React',         bg: '#20232A', fg: '#61DAFB', x: 610, y: 32,  rot: -2.1 },
+  { label: 'TypeScript',    bg: '#3178C6', fg: '#FFFFFF', x: 520, y: 112, rot:  1.4 },
+  { label: 'Android',       bg: '#1B6B3A', fg: '#3DDC84', x: 648, y: 178, rot: -1.8 },
+  { label: 'React Native',  bg: '#282C34', fg: '#61DAFB', x: 378, y: 265, rot:  2.2 },
+  { label: 'Node.js',       bg: '#1A4D1A', fg: '#68C44A', x: 600, y: 305, rot: -1.2 },
+  { label: 'JavaScript',    bg: '#1A1714', fg: '#F7DF1E', x: 152, y: 355, rot:  1.8 },
+  { label: 'Kotlin',        bg: '#7F52FF', fg: '#FFFFFF', x: 638, y: 395, rot: -2.5 },
+  { label: 'Next.js + AWS', bg: '#B8572A', fg: '#FFFFFF', x: 316, y: 155, rot:  1.0 },
+];
+
+// ── CANVAS ─────────────────────────────────────────────────────────
+const area   = document.getElementById('layoutArea');
+const canvas = document.getElementById('text-canvas');
+const ctx    = canvas.getContext('2d');
+
+// Cached area rect so Iron Man knows where the canvas lives in the viewport.
+// Updated on resize/scroll only — zero DOM reads per animation frame.
+let areaRect = { left: 0, top: 0, width: 900, height: 510 };
+function updateAreaRect() { areaRect = area.getBoundingClientRect(); }
+
+function resizeCanvas() {
+  canvas.width  = area.clientWidth;
+  canvas.height = area.clientHeight;
+  updateAreaRect();
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('scroll', updateAreaRect, { passive: true });
+setTimeout(updateAreaRect, 120);
+
+// ── BADGE MOUNT + DRAG ─────────────────────────────────────────────
+const badges = BADGE_DEFS.map(d => ({ ...d, w: 0, h: 0, el: null }));
+let dragIdx = null, dragDX = 0, dragDY = 0;
+
+function mountBadges() {
+  badges.forEach((b, i) => {
+    const el = document.createElement('div');
+    el.className = 'badge';
+    el.textContent = b.label;
+    el.style.cssText = `background:${b.bg};color:${b.fg};left:${b.x}px;top:${b.y}px;transform:rotate(${b.rot}deg)`;
+    area.appendChild(el);
+    b.el = el;
+    requestAnimationFrame(() => { b.w = el.offsetWidth; b.h = el.offsetHeight; });
+    el.addEventListener('mousedown', e => {
+      e.preventDefault(); dragIdx = i;
+      const ar = area.getBoundingClientRect();
+      dragDX = e.clientX - ar.left - b.x;
+      dragDY = e.clientY - ar.top  - b.y;
+      el.classList.add('is-dragging');
+    });
+    el.addEventListener('touchstart', e => {
+      e.preventDefault(); dragIdx = i;
+      const t = e.touches[0], ar = area.getBoundingClientRect();
+      dragDX = t.clientX - ar.left - b.x;
+      dragDY = t.clientY - ar.top  - b.y;
+      el.classList.add('is-dragging');
+    }, { passive: false });
+  });
+}
+
+function moveDrag(cx, cy) {
+  if (dragIdx === null) return;
+  const b = badges[dragIdx], ar = area.getBoundingClientRect();
+  b.x = Math.max(0, Math.min(canvas.width  - (b.w || 90), cx - ar.left - dragDX));
+  b.y = Math.max(0, Math.min(canvas.height - (b.h || 34), cy - ar.top  - dragDY));
+  b.el.style.left = b.x + 'px';
+  b.el.style.top  = b.y + 'px';
+}
+function endDrag() {
+  if (dragIdx !== null) { badges[dragIdx].el.classList.remove('is-dragging'); dragIdx = null; }
+}
+
+document.addEventListener('mousemove', e => moveDrag(e.clientX, e.clientY));
+document.addEventListener('mouseup', endDrag);
+document.addEventListener('touchmove', e => { e.preventDefault(); moveDrag(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+document.addEventListener('touchend', endDrag);
+
+// ── TEXT LAYOUT ENGINE ─────────────────────────────────────────────
+const PAD  = { top: 28, right: 44, bottom: 16, left: 44 };
+const FS   = 13.5;
+const LH   = 23;
+const BPAD = 13;
+const DC_LINES = 3;
+const DC_SIZE  = Math.round(FS * (LH / FS) * DC_LINES * 0.86);
+const BODY_FONT = `${FS}px 'Lora', Georgia, serif`;
+const paragraphs = ARTICLE_BODY.split('\n\n').map(p => p.trim().split(/\s+/));
+let _dcWidth = 0;
+
+function measureDropCap() {
+  ctx.font = `900 ${DC_SIZE}px 'Playfair Display', Georgia, serif`;
+  _dcWidth = ctx.measureText(DROP_CAP_CHAR).width + 10;
+}
+
+function availableSegments(y1, y2, exclusions, left, right) {
+  let segs = [{ x: left, end: right }];
+  for (const ex of exclusions) {
+    if (ex.y2 <= y1 || ex.y1 >= y2) continue;
+    const next = [];
+    for (const s of segs) {
+      if (ex.x2 <= s.x || ex.x1 >= s.end) { next.push(s); continue; }
+      if (s.x < ex.x1 - 2)   next.push({ x: s.x,   end: ex.x1 });
+      if (s.end > ex.x2 + 2)  next.push({ x: ex.x2, end: s.end });
+    }
+    segs = next.length ? next : segs;
+  }
+  return segs.filter(s => s.end - s.x > 26);
+}
+
+function getExclusions() {
+  const ex = [];
+  // Skill badges
+  for (const b of badges) {
+    if (!b.w) continue;
+    ex.push({ x1: b.x - BPAD, y1: b.y - BPAD, x2: b.x + b.w + BPAD, y2: b.y + b.h + BPAD });
+  }
+  // Drop cap
+  ex.push({ x1: PAD.left, y1: PAD.top, x2: PAD.left + _dcWidth, y2: PAD.top + DC_LINES * LH });
+  // Iron Man — convert from fixed viewport coords to canvas-local coords
+  const imCX = imX - areaRect.left;
+  const imCY = imY - areaRect.top;
+  const IM_PAD = 10;
+  ex.push({
+    x1: imCX - IM_PAD,
+    y1: imCY - IM_PAD,
+    x2: imCX + IM_W + IM_PAD,
+    y2: imCY + IM_H + IM_PAD,
+  });
+  return ex;
+}
+
+function layoutAllText(exclusions) {
+  ctx.font = BODY_FONT;
+  const spW   = ctx.measureText(' ').width;
+  const lines = [];
+  let y = PAD.top + LH;
+
+  for (let pi = 0; pi < paragraphs.length; pi++) {
+    const words = [...paragraphs[pi]];
+    let wi = 0;
+    while (wi < words.length) {
+      if (y > canvas.height - PAD.bottom) break;
+      const segs = availableSegments(y - FS, y + 5, exclusions, PAD.left, canvas.width - PAD.right);
+      ctx.font = BODY_FONT;
+      for (const seg of segs) {
+        if (wi >= words.length) break;
+        const segW = seg.end - seg.x;
+        let line = '', lw = 0;
+        while (wi < words.length) {
+          const w = words[wi], ww = ctx.measureText(w).width;
+          const needed = line ? lw + spW + ww : ww;
+          if (needed > segW && line) break;
+          line = line ? line + ' ' + w : w;
+          lw = needed;
+          wi++;
+        }
+        if (line) lines.push({ text: line, x: seg.x, y, maxW: segW, lw, isLast: wi >= words.length });
+      }
+      y += LH;
+    }
+    y += LH * 0.45;
+  }
+  return lines;
+}
+
+// ── DRAW ───────────────────────────────────────────────────────────
+function drawDropCap() {
+  ctx.font = `900 ${DC_SIZE}px 'Playfair Display', Georgia, serif`;
+  ctx.fillStyle = '#B8572A';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(DROP_CAP_CHAR, PAD.left, PAD.top + DC_SIZE * 0.82);
+}
+
+function drawRulingLines() {
+  ctx.strokeStyle = 'rgba(180,170,158,0.1)';
+  ctx.lineWidth = 0.5;
+  for (let y = PAD.top + LH * 5; y < canvas.height - PAD.bottom; y += LH * 5) {
+    ctx.beginPath();
+    ctx.moveTo(PAD.left, y + 4);
+    ctx.lineTo(canvas.width - PAD.right, y + 4);
+    ctx.stroke();
+  }
+}
+
+function drawLine(line) {
+  ctx.font = BODY_FONT;
+  ctx.fillStyle = '#1A1714';
+  ctx.textBaseline = 'alphabetic';
+  if (!line.isLast) {
+    const words = line.text.split(' ');
+    if (words.length > 1) {
+      const totalW = words.reduce((s, w) => s + ctx.measureText(w).width, 0);
+      const gap = (line.maxW - totalW) / (words.length - 1);
+      let cx = line.x;
+      for (const w of words) { ctx.fillText(w, cx, line.y); cx += ctx.measureText(w).width + gap; }
+      return;
+    }
+  }
+  ctx.fillText(line.text, line.x, line.y);
+}
+
+// ── ANIMATION LOOP ─────────────────────────────────────────────────
+let lastTS = performance.now(), smoothFPS = 60;
+
+function frame(ts) {
+  const dt = ts - lastTS; lastTS = ts;
+  smoothFPS = smoothFPS * 0.88 + (1000 / Math.max(dt, 1)) * 0.12;
+  const t0 = performance.now();
+  const exclusions = getExclusions();
+  const lines = layoutAllText(exclusions);
+  const reflow = (performance.now() - t0).toFixed(2);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawRulingLines();
+  drawDropCap();
+  for (const l of lines) drawLine(l);
+  document.getElementById('s-lines').textContent  = lines.length;
+  document.getElementById('s-reflow').textContent = reflow + 'ms';
+  document.getElementById('s-fps').textContent    = Math.min(60, Math.round(smoothFPS));
+  requestAnimationFrame(frame);
+}
+
+// ── IRON MAN ───────────────────────────────────────────────────────
+const imEl     = document.getElementById('ironman-wrap');
+const imShadow = document.getElementById('im-shadow');
+const IM_W = 48, IM_H = 66;
+
+let imX = 200, imY = 300;
+let imTX = 500, imTY = 400;
+let imSpeed = 1.0;
+let imFacing = 1;
+let imPaused = false;
+let imPauseTimer = 0;
+
+function pickTarget() {
+  imTX = 20 + Math.random() * (window.innerWidth  - IM_W - 40);
+  imTY = 20 + Math.random() * (window.innerHeight - IM_H - 40);
+  imSpeed = 0.65 + Math.random() * 0.9;
+}
+
+function tickIronMan() {
+  if (imPaused) {
+    imPauseTimer--;
+    if (imPauseTimer <= 0) { imPaused = false; pickTarget(); }
+    return;
+  }
+  const dx = imTX - imX, dy = imTY - imY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 4) {
+    imPaused = true;
+    imPauseTimer = 70 + Math.floor(Math.random() * 110);
+    imEl.classList.remove('walking');
+    return;
+  }
+  imFacing = dx >= 0 ? 1 : -1;
+  imX += (dx / dist) * imSpeed;
+  imY += (dy / dist) * imSpeed;
+  // CSS writes only, no layout reads
+  imEl.style.left      = imX + 'px';
+  imEl.style.top       = imY + 'px';
+  imEl.style.transform = `scaleX(${imFacing})`;
+  imShadow.style.left  = (imX + IM_W / 2) + 'px';
+  imShadow.style.top   = (imY + IM_H) + 'px';
+  imEl.classList.add('walking');
+}
+
+function imLoop() { tickIronMan(); requestAnimationFrame(imLoop); }
+
+// ── BOOT ───────────────────────────────────────────────────────────
+document.fonts.ready.then(() => {
+  measureDropCap();
+  mountBadges();
+  setTimeout(() => {
+    badges.forEach(b => { if (b.el) { b.w = b.el.offsetWidth; b.h = b.el.offsetHeight; } });
+    requestAnimationFrame(frame);
+  }, 80);
+});
+
+imX = window.innerWidth  * 0.3;
+imY = window.innerHeight * 0.6;
+pickTarget();
+imEl.style.left = imX + 'px';
+imEl.style.top  = imY + 'px';
+requestAnimationFrame(imLoop);
+</script>
+</body>
+</html>
